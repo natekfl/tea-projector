@@ -98,7 +98,7 @@ function drawFrame() {
 }
 
 setInterval(() => {
-    fetch(`${window.location.hostname}:3001`)
+    fetch(`http://${window.location.hostname}:3001`)
         .then((response) => response.json())
         .then((data) => starOpen = data)
 }, 50)
