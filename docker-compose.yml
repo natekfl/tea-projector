@@ -1,0 +1,14 @@
+version: '2'
+
+services:
+
+  webserver:
+    build: ./display
+    network_mode: host
+    restart: always
+
+  gpio:
+    build: ./gpio
+    network_mode: host
+    privileged: true
+    restart: always
