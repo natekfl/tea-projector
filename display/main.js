@@ -1,26 +1,13 @@
 const canvas = document.getElementById("canvas")
 const ctx = canvas.getContext("2d")
 
-let starOpen = false
+const mediaSource = "/resources/stars.mp4"
 
-const skyVideo = document.createElement("video")
-skyVideo.src = "/resources/stars.mp4"
-skyVideo.autoplay = true
-skyVideo.loop = true
-skyVideo.muted = true
-
-const starIntroVideo = document.createElement("video")
-starIntroVideo.src = "/resources/star-intro/output.webm"
-starIntroVideo.load()
-
-const starMainVideo = document.createElement("video")
-starMainVideo.src = "/resources/star-main/output.webm"
-starMainVideo.loop = true
-starMainVideo.load()
-
-const starOutroVideo = document.createElement("video")
-starOutroVideo.src = "/resources/star-outro/output.webm"
-starOutroVideo.load()
+const baseVideo = document.createElement("video")
+baseVideo.src = mediaSource
+baseVideo.autoplay = true
+baseVideo.loop = true
+baseVideo.muted = true
 
 const backgroundAudio = new Audio('/resources/background.mp3')
 backgroundAudio.loop = true
@@ -29,8 +16,34 @@ const closeAudio = new Audio('/resources/close.mp3')
 const idleAudio = new Audio('/resources/idle.mp3')
 idleAudio.loop = true
 
-skyVideo.oncanplay = () => {
-    skyVideo.play()
+let starOpen = false
+
+const mainStarLoop = []
+for (let i = 0; i < 250; i++) {
+    const image = new Image()
+    image.src = `/resources/star-main/image${i.toString().padStart(4, "0")}.png`
+    mainStarLoop.push(image)
+}
+let mainLoopStartedAt = null
+
+const introStarLoop = []
+for (let i = 0; i < 50; i++) {
+    const image = new Image()
+    image.src = `/resources/star-intro/image${i.toString().padStart(5, "0")}.png`
+    introStarLoop.push(image)
+}
+let introLoopStartedAt = null
+
+const outroStarLoop = []
+for (let i = 0; i < 17; i++) {
+    const image = new Image()
+    image.src = `/resources/star-outro/image${i.toString().padStart(5, "0")}.png`
+    outroStarLoop.push(image)
+}
+let outroLoopStartedAt = null
+
+baseVideo.oncanplay = () => {
+    baseVideo.play()
     backgroundAudio.play()
     function step() {
         drawFrame()
@@ -40,51 +53,46 @@ skyVideo.oncanplay = () => {
 }
 
 function drawFrame() {
-    ctx.drawImage(skyVideo, 0, 0, canvas.width, canvas.height)
-    if (!starOutroVideo.paused && starOutroVideo.readyState === 4) {
-        ctx.drawImage(starOutroVideo, 0, 0, canvas.width, canvas.height)
-        if (!starMainVideo.paused) {
-            starMainVideo.pause()
-            starMainVideo.currentTime = 0.0
-            starMainVideo.load()
-        }
-        idleAudio.volume = 1 - (starIntroVideo.currentTime / starIntroVideo.duration)
-    } else if (!starMainVideo.paused) {
-        ctx.drawImage(starMainVideo, 0, 0, canvas.width, canvas.height)
-        if (starIntroVideo.currentTime === starIntroVideo.duration) {
-            console.log("t")
-            starIntroVideo.pause()
-            starIntroVideo.currentTime = 0.0
-            starIntroVideo.load()
-            starOutroVideo.pause()
-            starOutroVideo.currentTime = 0.0
-            starOutroVideo.load()
-        }
-        if (!starOpen) {
-            const loopTime = starMainVideo.currentTime % 2
-            if (loopTime < 0.1 || loopTime > 1.9) {
-                starOutroVideo.currentTime = 0.0
-                starOutroVideo.play()
-                closeAudio.currentTime = 0.0
+    ctx.drawImage(baseVideo, 0, 0, canvas.width, canvas.height)
+    if (mainLoopStartedAt != null) {
+        const time = (Date.now() - mainLoopStartedAt) / 1000
+        const frameNum = Math.floor(time * 24) % 250
+        const frame = mainStarLoop[frameNum]
+        ctx.drawImage(frame, 0, 0, canvas.width, canvas.height)
+
+        if (frameNum % 48 === 0) {
+            if (!starOpen) {
+                mainLoopStartedAt = null
+                outroLoopStartedAt = Date.now()
                 closeAudio.play()
             }
         }
-    } else if (!starIntroVideo.paused || starIntroVideo.currentTime === starIntroVideo.duration) {
-        ctx.drawImage(starIntroVideo, 0, 0, canvas.width, canvas.height)
-        if (starIntroVideo.currentTime === starIntroVideo.duration) {
-            starMainVideo.play()
+    } else if (introLoopStartedAt != null) {
+        const time = (Date.now() - introLoopStartedAt) / 1000
+        const frameNum = Math.min(Math.floor(time * 24), 49)
+        const frame = introStarLoop[frameNum]
+        ctx.drawImage(frame, 0, 0, canvas.width, canvas.height)
+        idleAudio.volume = frameNum / 49
+        if (frameNum >= 49) {
+            introLoopStartedAt = null
+            mainLoopStartedAt = Date.now()
         }
-        idleAudio.volume = starIntroVideo.currentTime / starIntroVideo.duration
-    } else {
-        if (!idleAudio.paused) {
+    } else if (outroLoopStartedAt != null) {
+        const time = (Date.now() - outroLoopStartedAt) / 1000
+        const frameNum = Math.min(Math.floor(time * 24), 16)
+        const frame = outroStarLoop[frameNum]
+        ctx.drawImage(frame, 0, 0, canvas.width, canvas.height)
+        idleAudio.volume = 1.0 - frameNum / 16
+        if (frameNum >= 16) {
+            outroLoopStartedAt = null
             idleAudio.pause()
         }
+    } else {
         if (starOpen) {
-            starIntroVideo.currentTime = 0.0
-            starIntroVideo.play()
-            openAudio.currentTime = 0.0
+            introLoopStartedAt = Date.now()
             openAudio.play()
             idleAudio.play()
+            idleAudio.volume = 0.0
         }
     }
 }
@@ -94,11 +102,3 @@ setInterval(() => {
         .then((response) => response.json())
         .then((data) => starOpen = data)
 }, 50)
-
-function inRange(x, min, max) {
-    return ((x - min) * (x - max) <= 0);
-}
-
-function acceptableValue(x, target, error) {
-    return inRange(preshowFrame.currentTime, target - error, target + error);
-}
