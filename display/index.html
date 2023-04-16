@@ -17,10 +17,18 @@
             margin: 0;
             padding: 0;
         }
+
+        .vidPos {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
     </style>
 </head>
 <body>
-    <canvas id="canvas" width="1920" height="1080"></canvas>
+    <div class="vidPos"><video src="/resources/stars.mp4" width="1920" height="1080" autoplay muted></video></div>
+    <div class="vidPos"><video src="" id="starVideoA" width="1920" height="1080"></video></div>
+    <div class="vidPos"><video src="" id="starVideoB" width="1920" height="1080"></video></div>
 
     <script src="/main.js"></script>
 </body>
