@@ -73,7 +73,7 @@ videoElementB.onplaying = () => {
 backgroundAudio.play()
 
 setInterval(() => {
-    fetch(`/open.json`)
+    fetch(`http://${window.location.hostname}:3001`)
         .then((response) => response.json())
         .then((data) => starOpen = data)
 }, 50)
